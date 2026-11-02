@@ -1,14 +1,13 @@
-# 🧩 Pasaporte Cultural - Entrega: Módulos
+# 💾 Pasaporte Cultural - Entrega: Local Storage, Hive, SQLite
 
-Aplicación móvil desarrollada en **React Native / Expo** estructurada bajo la arquitectura por **Módulos Independientes**[cite: 5, 10].
+Aplicación móvil en **React Native / Expo** implementando **Persistencia de Datos Local**, **Caché Offline** y **Persistencia de Sesión**.
 
-## 📁 Distribución de Módulos
+## 📦 Características de Almacenamiento Local
 
-La lógica de negocio e interfaz se ha dividido en submódulos encapsulados dentro de `src/modules/`:
+- 🔐 **Inicio de Sesión Persistente**: Mantiene activa la sesión del usuario al recargar o reabrir la app.
+- ⚡ **Caché Offline de Lugares**: Si la app pierde conectividad, recupera los datos desde el almacenamiento local.
+- 💾 **Datos de Usuario Persistidos**: Guarda las visitas realizadas y los lugares favoritos localmente para que no se pierdan[cite: 5, 11].
 
-- 🔑 **`src/modules/access/AccessModule.js`**: Gestión de acceso, roles y sesión.
-- 🏠 **`src/modules/home/HomeModule.js`**: Resumen general, contadores y avance de retos[cite: 5].
-- 🏛️ **`src/modules/places/PlacesModule.js`**: Catálogo de lugares, filtros y lista de favoritos[cite: 5].
-- 📍 **`src/modules/checkin/CheckinModule.js`**: Proceso de validación e ingreso de códigos[cite: 5].
-- 📖 **`src/modules/passport/PassportModule.js`**: Historial de visitas y pasaporte cultural[cite: 5].
-- ⚙️ **`src/modules/admin/AdminModule.js`**: Administración CRUD para perfil de Editor[cite: 5].
+## 🏗️ Estructura del Almacenamiento
+- `src/data/providers/LocalStorage.js`: Abstracción del API de almacenamiento local (`AsyncStorage` / `LocalStorage`).
+- `src/data/repositories/AppRepository.js`: Coordinación entre API remota, caché local y restauración de la sesión[cite: 5, 11].

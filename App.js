@@ -3,7 +3,6 @@ import { StyleSheet, Text, View, SafeAreaView, Alert, ActivityIndicator, Touchab
 import { repository } from './src/data/repositories/AppRepository';
 import { checkinService, adminService } from './src/data/services/AppServices';
 
-// Importación de Módulos Independientes
 import AccessModule from './src/modules/access/AccessModule';
 import HomeModule from './src/modules/home/HomeModule';
 import PlacesModule from './src/modules/places/PlacesModule';
@@ -14,22 +13,26 @@ import AdminModule from './src/modules/admin/AdminModule';
 export default function App() {
   const [user, setUser] = useState(null);
   const [screen, setScreen] = useState('access');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [editingPlace, setEditingPlace] = useState(null);
 
   useEffect(() => {
-    fetchData();
+    initApp();
   }, []);
 
-  const fetchData = async () => {
+  const initApp = async () => {
     setLoading(true);
-    await repository.syncWithWebService();
+    await repository.initLocalStorage();
+    if (repository.currentUser) {
+      setUser({ ...repository.currentUser });
+      setScreen('home');
+    }
     setLoading(false);
   };
 
-  const handleLogin = (email) => {
+  const handleLogin = async (email) => {
     try {
-      const loggedUser = repository.login(email);
+      const loggedUser = await repository.login(email);
       setUser({ ...loggedUser });
       setScreen('home');
     } catch (err) {
@@ -37,14 +40,26 @@ export default function App() {
     }
   };
 
-  const handleRegisterVisit = (code) => {
+  const handleLogout = async () => {
+    await repository.logout();
+    setUser(null);
+    setScreen('access');
+  };
+
+  const handleRegisterVisit = async (code) => {
     try {
-      checkinService.registerVisit(code);
-      Alert.alert('¡Éxito!', 'Visita registrada en tu pasaporte');
+      await checkinService.registerVisit(code);
+      Alert.alert('¡Éxito!', 'Visita guardada localmente en tu pasaporte');
       setScreen('passport');
     } catch (err) {
       Alert.alert('Error de Validación', err.message);
     }
+  };
+
+  const handleToggleFavorite = async (pId) => {
+    await repository.toggleFavorite(user.id, pId);
+    setScreen('home');
+    setTimeout(() => setScreen('places'), 10);
   };
 
   const handleSavePlace = async (id, name, code) => {
@@ -85,11 +100,20 @@ export default function App() {
     }
   };
 
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#0066cc" />
+        <Text style={{ marginTop: 10, color: '#666' }}>Cargando datos y caché local...</Text>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#0066cc" />
+      {repository.isOfflineMode && (
+        <View style={styles.offlineBanner}>
+          <Text style={styles.offlineText}>⚠️ Modo Offline: Usando datos de Caché Local</Text>
         </View>
       )}
 
@@ -99,8 +123,8 @@ export default function App() {
         <View style={{flex: 1}}>
           <View style={styles.navHeader}>
             <Text style={styles.userInfo}>{user.name} ({user.role.toUpperCase()})</Text>
-            <TouchableOpacity onPress={() => { repository.logout(); setUser(null); setScreen('access'); }}>
-              <Text style={{color: 'red', fontWeight: 'bold'}}>Salir</Text>
+            <TouchableOpacity onPress={handleLogout}>
+              <Text style={{color: 'red', fontWeight: 'bold'}}>Cerrar Sesión</Text>
             </TouchableOpacity>
           </View>
 
@@ -131,7 +155,7 @@ export default function App() {
               <PlacesModule 
                 places={repository.places}
                 isFavorite={(pId) => repository.isFavorite(user.id, pId)}
-                onToggleFavorite={(pId) => { repository.toggleFavorite(user.id, pId); setScreen('home'); setTimeout(() => setScreen('places'), 10); }}
+                onToggleFavorite={handleToggleFavorite}
                 role={user.role}
                 onEdit={(place) => { setEditingPlace(place); setScreen('admin'); }}
                 onDelete={handleDeletePlace}
@@ -164,9 +188,11 @@ export default function App() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f4f6f8' },
-  loadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', zIndex: 99 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   navHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#eee' },
   userInfo: { fontWeight: 'bold', color: '#333' },
   menuBar: { flexDirection: 'row', justifyContent: 'space-around', padding: 12, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#ddd' },
-  menuItem: { fontWeight: 'bold', color: '#0066cc' }
+  menuItem: { fontWeight: 'bold', color: '#0066cc' },
+  offlineBanner: { backgroundColor: '#ffc107', padding: 8, alignItems: 'center' },
+  offlineText: { color: '#000', fontWeight: 'bold', fontSize: 12 }
 });
