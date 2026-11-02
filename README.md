@@ -1,13 +1,15 @@
-# 💾 Pasaporte Cultural - Entrega: Local Storage, Hive, SQLite
+# 🎯 Pasaporte Cultural - Entrega: Local storage, hive, sqlite (Flutter)
 
-Aplicación móvil en **React Native / Expo** implementando **Persistencia de Datos Local**, **Caché Offline** y **Persistencia de Sesión**.
+Aplicación móvil desarrollada en **Flutter / Dart** implementando **Hive** para persistencia de sesión/clave-valor y **SQLite (`sqflite`)** para el almacenamiento de datos relacionales y visitas.
 
-## 📦 Características de Almacenamiento Local
+## 📌 Implementación de Persistencia Local en Flutter
 
-- 🔐 **Inicio de Sesión Persistente**: Mantiene activa la sesión del usuario al recargar o reabrir la app.
-- ⚡ **Caché Offline de Lugares**: Si la app pierde conectividad, recupera los datos desde el almacenamiento local.
-- 💾 **Datos de Usuario Persistidos**: Guarda las visitas realizadas y los lugares favoritos localmente para que no se pierdan[cite: 5, 11].
+- 🐝 **Hive (`hive_flutter`)**: Se utiliza para el almacenamiento ligero tipo Key-Value. Mantiene persistida la sesión del usuario (`session_box`) y el caché de preferencias.
+- 🗄️ **SQLite (`sqflite`)**: Se utiliza para la base de datos relacional local. Gestiona el catálogo de lugares culturales y el historial de visitas en `pasaporte_cultural.db`[cite: 5, 11].
+- 🔑 **Manejo de Sesión**: La sesión perdura activa entre reinicios del dispositivo gracias a Hive.
+- 🌐 **Estrategia Caché**: Carga y lectura offline de datos locales.
 
-## 🏗️ Estructura del Almacenamiento
-- `src/data/providers/LocalStorage.js`: Abstracción del API de almacenamiento local (`AsyncStorage` / `LocalStorage`).
-- `src/data/repositories/AppRepository.js`: Coordinación entre API remota, caché local y restauración de la sesión[cite: 5, 11].
+## 🏗️ Estructura del Proyecto Flutter
+- `lib/data/providers/database_provider.dart`: Abstracción conjunta de inicialización de **Hive** y **SQLite**.
+- `lib/data/models/models.dart`: Modelos de entidades (`UserModel`, `PlaceModel`)[cite: 5].
+- `lib/main.dart`: Interfaz y controlador principal en Flutter (Material Design 3)[cite: 5].
