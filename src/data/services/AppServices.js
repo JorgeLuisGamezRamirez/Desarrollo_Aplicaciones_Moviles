@@ -1,4 +1,5 @@
 import { repository } from '../repositories/AppRepository';
+import { ApiService } from './ApiService';
 
 export const checkinService = {
   registerVisit: (code) => {
@@ -14,12 +15,47 @@ export const checkinService = {
 };
 
 export const adminService = {
-  createPlace: (placeData) => {
+  // CREATE via Web Service
+  async createPlace(placeData) {
     if (repository.currentUser?.role !== 'editor') {
-      throw new Error('Acceso denegado: Se requiere rol de Editor'); // Regla 9
+      throw new Error('Acceso denegado: Se requiere rol de Editor');
     }
-    const newPlace = { id: Date.now().toString(), ...placeData, active: true };
-    repository.places.push(newPlace);
+    
+    // Llamada HTTP POST
+    await ApiService.createPlace(placeData);
+
+    const newPlace = { id: `p${Date.now()}`, ...placeData, active: true };
+    repository.places.unshift(newPlace);
     return newPlace;
+  },
+
+  // UPDATE via Web Service
+  async updatePlace(id, updatedData) {
+    if (repository.currentUser?.role !== 'editor') {
+      throw new Error('Acceso denegado: Se requiere rol de Editor');
+    }
+
+    await ApiService.updatePlace(id, updatedData);
+
+    const index = repository.places.findIndex(p => p.id === id);
+    if (index !== -1) {
+      repository.places[index] = { ...repository.places[index], ...updatedData };
+    }
+    return repository.places[index];
+  },
+
+  // DELETE / DESACTIVAR via Web Service
+  async deactivatePlace(id) {
+    if (repository.currentUser?.role !== 'editor') {
+      throw new Error('Acceso denegado: Se requiere rol de Editor');
+    }
+
+    await ApiService.deletePlace(id);
+
+    const place = repository.places.find(p => p.id === id);
+    if (place) {
+      place.active = false;
+    }
+    return true;
   }
 };
