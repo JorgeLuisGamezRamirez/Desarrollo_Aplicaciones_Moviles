@@ -1,14 +1,14 @@
-# 🌐 Pasaporte Cultural - Versión 3 (CRUD & Servicios Web)
+# 🧩 Pasaporte Cultural - Entrega: Módulos
 
-Aplicación móvil en **React Native / Expo** implementando la **Gestión de Datos (CRUD)** conectada a **Servicios Web REST** (`fetch` / API HTTP).
+Aplicación móvil desarrollada en **React Native / Expo** estructurada bajo la arquitectura por **Módulos Independientes**[cite: 5, 10].
 
-## 📡 Integración de Servicios Web
+## 📁 Distribución de Módulos
 
-- **`GET`**: Carga dinámica de catálogo cultural desde la API HTTP en el arranque de la app.
-- **`POST`**: Creación de nuevos espacios culturales sincronizados con el servidor remoto[cite: 5, 9].
-- **`PUT`**: Edición y actualización de datos persistidos en el servicio web[cite: 5, 9].
-- **`DELETE`**: Desactivación y borrado lógico de registros expuestos por la API REST[cite: 5, 9].
+La lógica de negocio e interfaz se ha dividido en submódulos encapsulados dentro de `src/modules/`:
 
-## 🏗️ Arquitectura
-- `src/data/services/ApiService.js`: Encapsula el consumo de peticiones HTTP asíncronas (`fetch` y `async/await`)[cite: 5, 9].
-- `src/data/services/AppServices.js`: Lógica CRUD expuesta al usuario Editor con validación de roles y estados[cite: 5, 9].
+- 🔑 **`src/modules/access/AccessModule.js`**: Gestión de acceso, roles y sesión.
+- 🏠 **`src/modules/home/HomeModule.js`**: Resumen general, contadores y avance de retos[cite: 5].
+- 🏛️ **`src/modules/places/PlacesModule.js`**: Catálogo de lugares, filtros y lista de favoritos[cite: 5].
+- 📍 **`src/modules/checkin/CheckinModule.js`**: Proceso de validación e ingreso de códigos[cite: 5].
+- 📖 **`src/modules/passport/PassportModule.js`**: Historial de visitas y pasaporte cultural[cite: 5].
+- ⚙️ **`src/modules/admin/AdminModule.js`**: Administración CRUD para perfil de Editor[cite: 5].

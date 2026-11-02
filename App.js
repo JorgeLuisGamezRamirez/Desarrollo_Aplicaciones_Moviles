@@ -1,36 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, SafeAreaView, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, SafeAreaView, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { repository } from './src/data/repositories/AppRepository';
 import { checkinService, adminService } from './src/data/services/AppServices';
 
+// Importación de Módulos Independientes
+import AccessModule from './src/modules/access/AccessModule';
+import HomeModule from './src/modules/home/HomeModule';
+import PlacesModule from './src/modules/places/PlacesModule';
+import CheckinModule from './src/modules/checkin/CheckinModule';
+import PassportModule from './src/modules/passport/PassportModule';
+import AdminModule from './src/modules/admin/AdminModule';
+
 export default function App() {
   const [user, setUser] = useState(null);
-  const [screen, setScreen] = useState('login');
+  const [screen, setScreen] = useState('access');
   const [loading, setLoading] = useState(false);
+  const [editingPlace, setEditingPlace] = useState(null);
 
-  const [code, setCode] = useState('');
-  const [searchText, setSearchText] = useState('');
-
-  // Formulario CRUD Editor
-  const [editingId, setEditingId] = useState(null);
-  const [newPlaceName, setNewPlaceName] = useState('');
-  const [newPlaceCode, setNewPlaceCode] = useState('');
-  const [category, setCategory] = useState('museo');
-
-  // Sincronización con Servicio Web al iniciar la App
   useEffect(() => {
-    fetchWebData();
+    fetchData();
   }, []);
 
-  const fetchWebData = async () => {
+  const fetchData = async () => {
     setLoading(true);
     await repository.syncWithWebService();
     setLoading(false);
   };
 
-  const handleLogin = (roleEmail) => {
+  const handleLogin = (email) => {
     try {
-      const loggedUser = repository.login(roleEmail);
+      const loggedUser = repository.login(email);
       setUser({ ...loggedUser });
       setScreen('home');
     } catch (err) {
@@ -38,79 +37,52 @@ export default function App() {
     }
   };
 
-  const handleRegisterVisit = () => {
+  const handleRegisterVisit = (code) => {
     try {
       checkinService.registerVisit(code);
       Alert.alert('¡Éxito!', 'Visita registrada en tu pasaporte');
-      setCode('');
       setScreen('passport');
     } catch (err) {
       Alert.alert('Error de Validación', err.message);
     }
   };
 
-  // Guardar (Crear o Actualizar) mediante Servicio Web REST
-  const handleSavePlace = async () => {
-    if (!newPlaceName || !newPlaceCode) {
-      Alert.alert('Error', 'Completa los campos requeridos');
-      return;
-    }
-
+  const handleSavePlace = async (id, name, code) => {
     setLoading(true);
     try {
-      if (editingId) {
-        // Operación UPDATE (HTTP PUT)
-        await adminService.updatePlace(editingId, {
-          name: newPlaceName,
-          code: newPlaceCode,
-          category
-        });
-        Alert.alert('Servicio Web API', 'Lugar actualizado exitosamente vía HTTP PUT');
+      if (id) {
+        await adminService.updatePlace(id, { name, code });
       } else {
-        // Operación CREATE (HTTP POST)
         await adminService.createPlace({
-          name: newPlaceName,
-          category,
+          name,
+          category: 'museo',
           municipio: 'Ciudad Madero',
           address: 'Zona Centro',
-          description: 'Lugar registrado mediante servicio REST',
+          description: 'Lugar registrado',
           schedule: '09:00 - 18:00',
-          code: newPlaceCode
+          code
         });
-        Alert.alert('Servicio Web API', 'Lugar creado exitosamente vía HTTP POST');
       }
-      setNewPlaceName('');
-      setNewPlaceCode('');
-      setEditingId(null);
+      setEditingPlace(null);
       setScreen('places');
     } catch (err) {
-      Alert.alert('Error API', err.message);
+      Alert.alert('Error', err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Desactivar (DELETE) mediante Servicio Web REST
-  const handleDeactivate = async (id) => {
+  const handleDeletePlace = async (id) => {
     setLoading(true);
     try {
       await adminService.deactivatePlace(id);
-      Alert.alert('Servicio Web API', 'Lugar desactivado vía HTTP DELETE');
       setScreen('home');
       setTimeout(() => setScreen('places'), 50);
     } catch (err) {
-      Alert.alert('Error API', err.message);
+      Alert.alert('Error', err.message);
     } finally {
       setLoading(false);
     }
-  };
-
-  const startEdit = (place) => {
-    setEditingId(place.id);
-    setNewPlaceName(place.name);
-    setNewPlaceCode(place.code);
-    setCategory(place.category);
-    setScreen('admin');
   };
 
   return (
@@ -118,26 +90,16 @@ export default function App() {
       {loading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#0066cc" />
-          <Text style={{ marginTop: 8, color: '#fff', fontWeight: 'bold' }}>Conectando con Servicio Web API...</Text>
         </View>
       )}
 
       {!user ? (
-        <View style={styles.boxCenter}>
-          <Text style={styles.title}>Pasaporte Cultural V3</Text>
-          <Text style={styles.sub}>Gestión de datos (CRUD) & Servicios Web REST</Text>
-          <TouchableOpacity style={[styles.btn, styles.bgBlue]} onPress={() => handleLogin('user@uat.edu.mx')}>
-            <Text style={styles.btnText}>Entrar como Visitante</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.btn, styles.bgPurple, {marginTop: 10}]} onPress={() => handleLogin('admin@uat.edu.mx')}>
-            <Text style={styles.btnText}>Entrar como Editor</Text>
-          </TouchableOpacity>
-        </View>
+        <AccessModule onLogin={handleLogin} />
       ) : (
         <View style={{flex: 1}}>
           <View style={styles.navHeader}>
             <Text style={styles.userInfo}>{user.name} ({user.role.toUpperCase()})</Text>
-            <TouchableOpacity onPress={() => { repository.logout(); setUser(null); setScreen('login'); }}>
+            <TouchableOpacity onPress={() => { repository.logout(); setUser(null); setScreen('access'); }}>
               <Text style={{color: 'red', fontWeight: 'bold'}}>Salir</Text>
             </TouchableOpacity>
           </View>
@@ -148,7 +110,7 @@ export default function App() {
             <TouchableOpacity onPress={() => setScreen('checkin')}><Text style={styles.menuItem}>Check-in</Text></TouchableOpacity>
             <TouchableOpacity onPress={() => setScreen('passport')}><Text style={styles.menuItem}>Pasaporte</Text></TouchableOpacity>
             {user.role === 'editor' && (
-              <TouchableOpacity onPress={() => { setEditingId(null); setNewPlaceName(''); setNewPlaceCode(''); setScreen('admin'); }}>
+              <TouchableOpacity onPress={() => { setEditingPlace(null); setScreen('admin'); }}>
                 <Text style={[styles.menuItem, {color: 'purple'}]}>+ Admin</Text>
               </TouchableOpacity>
             )}
@@ -156,102 +118,42 @@ export default function App() {
 
           <View style={{flex: 1, padding: 15}}>
             {screen === 'home' && (
-              <View>
-                <Text style={styles.screenTitle}>Resumen del Pasaporte</Text>
-                <Text style={styles.cardInfo}>Visitas Totales: {repository.visits.filter(v => v.userId === user.id).length}</Text>
-                <Text style={styles.cardInfo}>Favoritos: {repository.favorites.filter(f => f.userId === user.id).length}</Text>
-                
-                <Text style={[styles.screenTitle, {marginTop: 20}]}>Retos Activos</Text>
-                {repository.challenges.map(c => {
-                  const progress = repository.calculateChallengeProgress(user.id, c);
-                  return (
-                    <View key={c.id} style={styles.card}>
-                      <Text style={{fontWeight: 'bold'}}>{c.title}</Text>
-                      <Text>{c.description}</Text>
-                      <Text style={{color: 'blue', marginTop: 5}}>Progreso: {progress} / {c.target}</Text>
-                    </View>
-                  );
-                })}
-              </View>
+              <HomeModule 
+                user={user} 
+                visitsCount={repository.visits.filter(v => v.userId === user.id).length}
+                favoritesCount={repository.favorites.filter(f => f.userId === user.id).length}
+                challenges={repository.challenges}
+                calculateProgress={(uId, c) => repository.calculateChallengeProgress(uId, c)}
+              />
             )}
 
             {screen === 'places' && (
-              <View style={{flex: 1}}>
-                <TextInput style={styles.input} placeholder="Buscar por nombre..." value={searchText} onChangeText={setSearchText} />
-                <FlatList
-                  data={repository.searchPlaces(searchText)}
-                  keyExtractor={item => item.id}
-                  renderItem={({ item }) => (
-                    <View style={styles.card}>
-                      <Text style={{fontWeight: 'bold', fontSize: 16}}>{item.name}</Text>
-                      <Text style={{color: '#666'}}>{item.category} • {item.municipio}</Text>
-                      <Text style={{fontSize: 12, color: '#999'}}>Código: {item.code}</Text>
-                      
-                      <View style={{flexDirection: 'row', gap: 10, marginTop: 10}}>
-                        <TouchableOpacity 
-                          style={styles.btnSm} 
-                          onPress={() => { repository.toggleFavorite(user.id, item.id); setScreen('places'); }}>
-                          <Text style={{color: '#fff', fontSize: 12}}>
-                            {repository.isFavorite(user.id, item.id) ? '★ Quitar' : '☆ Favorito'}
-                          </Text>
-                        </TouchableOpacity>
-
-                        {user.role === 'editor' && (
-                          <>
-                            <TouchableOpacity style={[styles.btnSm, {backgroundColor: '#ffc107'}]} onPress={() => startEdit(item)}>
-                              <Text style={{color: '#000', fontSize: 12}}>✏️ Editar</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={[styles.btnSm, {backgroundColor: '#dc3545'}]} onPress={() => handleDeactivate(item.id)}>
-                              <Text style={{color: '#fff', fontSize: 12}}>🗑️ Desactivar</Text>
-                            </TouchableOpacity>
-                          </>
-                        )}
-                      </View>
-                    </View>
-                  )}
-                />
-              </View>
+              <PlacesModule 
+                places={repository.places}
+                isFavorite={(pId) => repository.isFavorite(user.id, pId)}
+                onToggleFavorite={(pId) => { repository.toggleFavorite(user.id, pId); setScreen('home'); setTimeout(() => setScreen('places'), 10); }}
+                role={user.role}
+                onEdit={(place) => { setEditingPlace(place); setScreen('admin'); }}
+                onDelete={handleDeletePlace}
+              />
             )}
 
             {screen === 'checkin' && (
-              <View style={styles.boxCenter}>
-                <Text style={styles.screenTitle}>Registrar Visita Cultural</Text>
-                <TextInput style={styles.input} placeholder="Código único del lugar (ej. CODE123)" value={code} onChangeText={setCode} />
-                <TouchableOpacity style={[styles.btn, styles.bgBlue]} onPress={handleRegisterVisit}>
-                  <Text style={styles.btnText}>Validar y Registrar</Text>
-                </TouchableOpacity>
-              </View>
+              <CheckinModule onRegisterVisit={handleRegisterVisit} />
             )}
 
             {screen === 'passport' && (
-              <View style={{flex: 1}}>
-                <Text style={styles.screenTitle}>Historial de Visitas</Text>
-                <FlatList
-                  data={repository.visits.filter(v => v.userId === user.id)}
-                  keyExtractor={item => item.id}
-                  renderItem={({ item }) => {
-                    const place = repository.places.find(p => p.id === item.placeId);
-                    return (
-                      <View style={styles.card}>
-                        <Text style={{fontWeight: 'bold'}}>{place?.name || 'Lugar'}</Text>
-                        <Text style={{color: '#666'}}>Fecha: {item.date}</Text>
-                      </View>
-                    );
-                  }}
-                />
-              </View>
+              <PassportModule 
+                visits={repository.visits.filter(v => v.userId === user.id)}
+                places={repository.places}
+              />
             )}
 
             {screen === 'admin' && (
-              <ScrollView>
-                <Text style={styles.screenTitle}>{editingId ? 'Editar Lugar (HTTP PUT)' : 'Crear Lugar (HTTP POST)'}</Text>
-                <TextInput style={styles.input} placeholder="Nombre del lugar" value={newPlaceName} onChangeText={setNewPlaceName} />
-                <TextInput style={styles.input} placeholder="Código único" value={newPlaceCode} onChangeText={setNewPlaceCode} />
-                
-                <TouchableOpacity style={[styles.btn, styles.bgPurple]} onPress={handleSavePlace}>
-                  <Text style={styles.btnText}>{editingId ? 'Actualizar en API' : '+ Guardar en API'}</Text>
-                </TouchableOpacity>
-              </ScrollView>
+              <AdminModule 
+                editingPlace={editingPlace}
+                onSavePlace={handleSavePlace}
+              />
             )}
           </View>
         </View>
@@ -262,21 +164,9 @@ export default function App() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f4f6f8' },
-  loadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', zIndex: 99 },
-  boxCenter: { flex: 1, justifyContent: 'center', padding: 20 },
-  title: { fontSize: 26, fontWeight: 'bold', textAlign: 'center', color: '#111', marginBottom: 5 },
-  sub: { textAlign: 'center', color: '#666', marginBottom: 20 },
-  screenTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15 },
-  input: { backgroundColor: '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#ddd', marginBottom: 10 },
-  btn: { padding: 14, borderRadius: 8, alignItems: 'center' },
-  btnSm: { backgroundColor: '#333', padding: 8, borderRadius: 6, alignItems: 'center' },
-  bgBlue: { backgroundColor: '#0066cc' },
-  bgPurple: { backgroundColor: '#6f42c1' },
-  btnText: { color: '#fff', fontWeight: 'bold' },
+  loadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', zIndex: 99 },
   navHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#eee' },
   userInfo: { fontWeight: 'bold', color: '#333' },
   menuBar: { flexDirection: 'row', justifyContent: 'space-around', padding: 12, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#ddd' },
-  menuItem: { fontWeight: 'bold', color: '#0066cc' },
-  card: { backgroundColor: '#fff', padding: 15, borderRadius: 8, marginBottom: 10, borderWidth: 1, borderColor: '#e1e4e8' },
-  cardInfo: { fontSize: 16, marginBottom: 5 }
+  menuItem: { fontWeight: 'bold', color: '#0066cc' }
 });
